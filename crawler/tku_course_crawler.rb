@@ -40,8 +40,8 @@ class TkuCourseCrawler
       Capybara::Poltergeist::Driver.new(app,  js_errors: false)
     end
 
-    Capybara.javascript_driver = :poltergeist
-    Capybara.current_driver = :poltergeist
+    Capybara.javascript_driver = :selenium
+    Capybara.current_driver = :selenium
   end
 
   def courses
@@ -122,8 +122,8 @@ class TkuCourseCrawler
 
           begin
             serial_no = datas[2] && datas[2].text.to_i.to_s.rjust(4, '0')
-            if datas[1].text == "(正課)　"
-              serial_no = (next_course_row.css('td')[1].text.to_i - 1).to_s.rjust(4, '0')
+            if datas[2].text.strip.gsub(/\u3000/, '') == "(正課)"
+              serial_no = (next_course_row.css('td')[2].text.to_i - 1).to_s.rjust(4, '0')
             end
           rescue
             binding.pry
@@ -133,8 +133,9 @@ class TkuCourseCrawler
           code = datas[3] && datas[3].text.strip.gsub(/\u3000/, '')
           class_code = datas[6] && datas[6].text.strip.gsub(/\u3000/, '')
           group_code = datas[7] && datas[7].text.strip.gsub(/\u3000/, '')
+	  class_group_code = datas[10] && datas[10].text.strip.gsub(/\u3000/, '')
           # code = "#{@year}-#{@term}-#{code}-#{serial_no}-#{department_code}"
-          code = "#{@year}-#{@term}-#{code}-#{class_code}-#{group_code}-#{department_code}"
+          code = "#{@year}-#{@term}-#{code}-#{serial_no}-#{class_code}-#{group_code}-#{department_code}"
 
           lecturer = ""
           if datas[13].nil?
@@ -160,7 +161,10 @@ class TkuCourseCrawler
           @courses << {
             year: @year,
             term: @term,
-            code: code,
+	    serial_no: serial_no,
+	    class_code: class_code,
+	    group_code: group_code,
+	    class_group_code: class_group_code,
             # preserve notes for notes
             name: datas[11] && datas[11].text.gsub(/\u3000/, ' ').strip,
             lecturer: lecturer,
@@ -335,8 +339,8 @@ class TkuCourseCrawler
   end
 end
 
-# cc = TkuCourseCrawler.new
-# File.write('tku_courses.json', JSON.pretty_generate(cc.courses))
+cc = TkuCourseCrawler.new
+File.write('tku_courses.json', JSON.pretty_generate(cc.courses))
 
-# cc = TkuCourseCrawler.new
-# File.write('1031_tku_courses.json', JSON.pretty_generate(cc.parse_from_local))
+cc = TkuCourseCrawler.new
+File.write('1031_tku_courses.json', JSON.pretty_generate(cc.parse_from_local))
